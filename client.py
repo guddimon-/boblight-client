@@ -157,8 +157,7 @@ def bob_client_init():
     bob.setSpeed(0)
 
 
-GPIO.setmode(GPIO.BOARD)
-
+# read configuration file
 config = ConfigParser.ConfigParser()
 config.read('boblight.cfg')
 
@@ -170,27 +169,29 @@ switch_power        = config.getint('switch', 'switch_power')
 bob_host    = config.get('boblight', 'host')
 bob_port    = config.getint('boblight', 'port')
 
+# initialize configured GPIO
+GPIO.setmode(GPIO.BOARD)
+
 GPIO.setup(switch_led_stripe, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
 GPIO.add_event_detect(switch_led_stripe, GPIO.RISING, callback=switch_led_pushed, bouncetime=500)
 
 GPIO.setup(switch_led, GPIO.OUT)
-led_blink = GPIO.PWM(switch_led, 100)
-led_blink.start(0)
 
 GPIO.setup(relais_led_stripe, GPIO.OUT, initial=0)
 
 GPIO.setup(switch_power, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
 GPIO.add_event_detect(switch_power, GPIO.RISING, callback=switch_power_pushed, bouncetime=500)
 
+# start blinking 
+led_blink = GPIO.PWM(switch_led, 100)
+led_blink.start(0)
+
+# start thread for IR events
 lirc_event_loop = LircThread()
 lirc_event_loop.start()
 
-
+# initialize boblight
 bob = boblib.Boblight(bob_host, bob_port)
-"""
-print bob
-"""
-
 bob_client_init()
 
 try:
@@ -214,7 +215,7 @@ except:
     pass
 
 
-#Cleanup everything we used
+# cleanup everything we used
 bob.disconnect()
 
 lirc_event_loop.stop()
