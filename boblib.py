@@ -1,6 +1,7 @@
 from telnetlib import Telnet
 from string import split
 
+# class Color for use in class Light (each light has it's own color)
 class Color:
     def __init__(self, red=0, green=0, blue=0):
         self.setColor(red, green, blue)
@@ -20,6 +21,7 @@ class Color:
         return self._blue
 
 
+# class Light for use in class Boblight
 class Light(object):
     def __init__(self, name, vSanFrom=0, vScanTo=0, hScanFrom=0, hScanTo=0, setManually=False, color=Color(), speed=0, interpolation=False):
         self._name = name
@@ -66,7 +68,9 @@ class Light(object):
         return self._interpolation
 
 
+# class Boblight for usage in your own code ;)
 class Boblight:
+    # strings for communication with boblightd
     _HELLO                  = "hello\n"
     _GETLIGHTS              = "get lights\n"
     _SETPRIORITY            = "set _priority {0}\n"
@@ -76,6 +80,7 @@ class Boblight:
     _SYNC                   = "sync\n"
     _PING                   = "ping\n"
     
+    # helper strings
     _EOL        = "\n"
     _SPLITTER   = " "
     
@@ -88,19 +93,19 @@ class Boblight:
         self._tn = Telnet(host, port)
         
         self._tn.write(self._HELLO)
-        self._tn.read_until("\n")
+        self._tn.read_until(self._EOL)
         
-        self.getLightsFromServer()
+        self._getLightsFromServer()
     
-    def getLightsFromServer(self):
+    def _getLightsFromServer(self):
         self._tn.write(self._GETLIGHTS)
         self._light = []
-        lights = self._tn.read_until("\n")
+        lights = self._tn.read_until(self._EOL)
 
         size = int(lights.split(self._SPLITTER)[1])
         
         for i in range(0, size):
-            light = self._tn.read_until("\n", 10)
+            light = self._tn.read_until(self._EOL, 10)
             light_split = split(light, self._SPLITTER)
 
             self._light.append(Light(light_split[1], light_split[3], light_split[4], light_split[5], light_split[6]))
@@ -165,7 +170,7 @@ class Boblight:
     
     def ping(self):
         self._tn.write(self._PING)
-        p = self._tn.read_until("\n")
+        p = self._tn.read_until(self._EOL)
         
         if p == "ping 1":
             return True
