@@ -3,6 +3,10 @@ from string import split
 
 # class Color for use in class Light (each light has it's own color)
 class Color:
+    _red    = float(0)
+    _green  = float(0)
+    _blue   = float(0)
+    
     def __init__(self, red=0, green=0, blue=0):
         self.setColor(red, green, blue)
         
@@ -23,16 +27,27 @@ class Color:
 
 # class Light for use in class Boblight
 class Light(object):
+    _name           = None
+    _vScanFrom      = float(0)
+    _vScanTo        = float(0)
+    _hScanFrom      = float(0)
+    _hScanTo        = float(0)
+    _speed          = int(0)
+    _interpolation  = bool(False)
+    _color          = Color(1, 1, 1)
+    _setManually    = bool(False)
+
+    
     def __init__(self, name, vSanFrom=0, vScanTo=0, hScanFrom=0, hScanTo=0, setManually=False, color=Color(), speed=0, interpolation=False):
-        self._name = name
-        self._vScanFrom = vSanFrom
-        self._vScanTo = vSanFrom
-        self._hScanFrom = hScanFrom
-        self._hScanTo = hScanTo
-        self._setManually = setManually
-        self._color = color
-        self._speed = speed
-        self._interpolation = interpolation
+        self._name = str(name)
+        self._vScanFrom = float(vSanFrom)
+        self._vScanTo = float(vSanFrom)
+        self._hScanFrom = float(hScanFrom)
+        self._hScanTo = float(hScanTo)
+        self._setManually = bool(setManually)
+        self._color = Color(color)
+        self._speed = int(speed)
+        self._interpolation = bool(interpolation)
     
     def setInterpolation(self, interpolation):
         self._interpolation = interpolation
@@ -84,22 +99,31 @@ class Boblight:
     _EOL        = "\n"
     _SPLITTER   = " "
     
+    # attributes where our data is stored into
+    _tn         = None
+    _light      = []
+    _priority   = int(254)
+    
     def __init__(self, host="", port=19333, priority=254):
         if host != "":
             self.connect(host, port)
-        self._setPriority(priority)
+            self.setPriority(priority)
+        else:
+            raise Boblight.ConnectionError("At least <host> must be given!")
         
     def connect(self, host, port):
-        self._tn = Telnet(host, port)
-        
-        self._tn.write(self._HELLO)
-        self._tn.read_until(self._EOL)
-        
-        self._getLightsFromServer()
+        if self._tn:
+            raise Boblight.ConnectionError("Already Connected!")
+        else:
+            self._tn = Telnet(host, port)
+            
+            self._tn.write(self._HELLO)
+            self._tn.read_until(self._EOL)
+            
+            self._getLightsFromServer()
     
     def _getLightsFromServer(self):
         self._tn.write(self._GETLIGHTS)
-        self._light = []
         lights = self._tn.read_until(self._EOL)
 
         size = int(lights.split(self._SPLITTER)[1])
@@ -113,7 +137,7 @@ class Boblight:
     def _sendPriority(self):
         self._tn.write(self._SETPRIORITY.format(self._priority))
         
-    def _setPriority(self, priority):
+    def setPriority(self, priority):
         self._priority = self._checkPriority(priority)
         self._sendPriority()
         
@@ -137,7 +161,10 @@ class Boblight:
         self._sendColor()
         
     def disconnect(self):
-        self._tn.close()
+        if self._tn:
+            self._tn.close()
+        else:
+            raise Boblight.ConnectionError("There was no connection to disconnect from!")
         
     def _sendSpeed(self):
         for l in self._light:
