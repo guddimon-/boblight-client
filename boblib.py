@@ -88,10 +88,10 @@ class Boblight:
     # strings for communication with boblightd
     _HELLO                  = "hello\n"
     _GETLIGHTS              = "get lights\n"
-    _SETPRIORITY            = "set _priority {0}\n"
-    _SETLIGHTRGB            = "set _light {0} rgb {1} {2} {3}\n"
-    _SETLIGHTSPEED          = "set _light {0} _speed {1}\n"
-    _SETLIGHTINTERPOLATION  = "set _light {0} _interpolation {1}\n"
+    _SETPRIORITY            = "set priority {0}\n"
+    _SETLIGHTRGB            = "set light {0} rgb {1} {2} {3}\n"
+    _SETLIGHTSPEED          = "set light {0} speed {1}\n"
+    _SETLIGHTINTERPOLATION  = "set light {0} interpolation {1}\n"
     _SYNC                   = "sync\n"
     _PING                   = "ping\n"
     
