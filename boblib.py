@@ -6,188 +6,166 @@ class Color:
         self.setColor(red, green, blue)
         
     def setColor(self, red=0, green=0, blue=0):
-        self.red = red
-        self.green = green
-        self.blue = blue
+        self._red = red
+        self._green = green
+        self._blue = blue
         
     def getRed(self):
-        return self.red
+        return self._red
     
     def getGreen(self):
-        return self.green
+        return self._green
     
     def getBlue(self):
-        return self.blue
+        return self._blue
 
 
 class Light(object):
     def __init__(self, name, vSanFrom=0, vScanTo=0, hScanFrom=0, hScanTo=0, setManually=False, color=Color(), speed=0, interpolation=False):
-        self.name = name
-        self.vScanFrom = vSanFrom
-        self.vScanTo = vSanFrom
-        self.hScanFrom = hScanFrom
-        self.hScanTo = hScanTo
-        self.setManually = setManually
-        self.color = color
-        self.speed = speed
-        self.interpolation = interpolation
+        self._name = name
+        self._vScanFrom = vSanFrom
+        self._vScanTo = vSanFrom
+        self._hScanFrom = hScanFrom
+        self._hScanTo = hScanTo
+        self._setManually = setManually
+        self._color = color
+        self._speed = speed
+        self._interpolation = interpolation
     
     def setInterpolation(self, interpolation):
-        self.interpolation = interpolation
+        self._interpolation = interpolation
             
     def setSetManually(self, setManually):
-        self.setManually = setManually
+        self._setManually = setManually
         
     def setSpeed(self, speed):
-        self.speed = speed
+        self._speed = speed
         
     def getName(self):
-        return self.name
+        return self._name
     
     def getSpeed(self):
-        return self.speed
+        return self._speed
     
     def getColor(self):
-        return self.color
+        return self._color
     
     def getHScanFrom(self):
-        return self.hScanFrom
+        return self._hScanFrom
     
     def getHScanTo(self):
-        return self.hScanTo
+        return self._hScanTo
     
     def getVScanFrom(self):
-        return self.vScanFrom
+        return self._vScanFrom
     
     def getVScanTo(self):
-        return self.vScanTo
+        return self._vScanTo
     
     def getInterpolation(self):
-        return self.interpolation
+        return self._interpolation
 
 
 class Boblight:
-    HELLO = "hello\n"
-    GETLIGHTS = "get lights\n"
-    SETPRIORITY = "set priority {0}\n"
-    SETLIGHTRGB = "set light {0} rgb {1} {2} {3}\n"
-    SETLIGHTSPEED = "set light {0} speed {1}\n"
-    SETLIGHTINTERPOLATION = "set light {0} interpolation {1}\n"
-    SYNC = "sync\n"
-    PING = "ping\n"
-    SPLITTER = " "
+    _HELLO                  = "hello\n"
+    _GETLIGHTS              = "get lights\n"
+    _SETPRIORITY            = "set _priority {0}\n"
+    _SETLIGHTRGB            = "set _light {0} rgb {1} {2} {3}\n"
+    _SETLIGHTSPEED          = "set _light {0} _speed {1}\n"
+    _SETLIGHTINTERPOLATION  = "set _light {0} _interpolation {1}\n"
+    _SYNC                   = "sync\n"
+    _PING                   = "ping\n"
     
-    def __init__(self, host, port, priority=254):
-        self.connect(host, port)
-        self.setPriority(priority)
+    _EOL        = "\n"
+    _SPLITTER   = " "
+    
+    def __init__(self, host="", port=19333, priority=254):
+        if host != "":
+            self.connect(host, port)
+        self._setPriority(priority)
         
     def connect(self, host, port):
-        self.tn = Telnet(host, port)
+        self._tn = Telnet(host, port)
         
-        self.tn.write(self.HELLO)
-        """
-        print "Hello:"
-        print self.tn.read_until("\n")
-        print "END"
-        """
+        self._tn.write(self._HELLO)
+        self._tn.read_until("\n")
         
         self.getLightsFromServer()
     
     def getLightsFromServer(self):
-        self.tn.write(self.GETLIGHTS)
-        self.light = []
-        lights = self.tn.read_until("\n")
-        """
-        print "Lights:"
-        print lights
-        print "END"
-        """
+        self._tn.write(self._GETLIGHTS)
+        self._light = []
+        lights = self._tn.read_until("\n")
 
-        size = int(lights.split(self.SPLITTER)[1])
-        """
-        print "Size:"
-        print size
-        print "END"
-        """
+        size = int(lights.split(self._SPLITTER)[1])
         
         for i in range(0, size):
-            light = self.tn.read_until("\n", 10)
-            """
-            print "Light:"
-            print light
-            print "END"
-            """
-            
-            light_split = split(light, self.SPLITTER)
-            """
-            print "Light splitted:"
-            print light_split
-            print "END"
-            """
+            light = self._tn.read_until("\n", 10)
+            light_split = split(light, self._SPLITTER)
 
-            self.light.append(Light(light_split[1], light_split[3], light_split[4], light_split[5], light_split[6]))
+            self._light.append(Light(light_split[1], light_split[3], light_split[4], light_split[5], light_split[6]))
 
-    def sendPriority(self):
-        self.tn.write(self.SETPRIORITY.format(self.priority))
+    def _sendPriority(self):
+        self._tn.write(self._SETPRIORITY.format(self._priority))
         
-    def setPriority(self, priority):
-        self.priority = self.checkPriority(priority)
-        self.sendPriority()
+    def _setPriority(self, priority):
+        self._priority = self._checkPriority(priority)
+        self._sendPriority()
         
-    def checkPriority(self, priority):
+    def _checkPriority(self, priority):
         if priority < 0:
             priority = 0
         if priority > 255:
             priority = 255
         return priority
     
-    def sendColor(self):
-        for l in self.light:
-            self.tn.write(self.SETLIGHTRGB.format(l.getName(), l.getColor().getRed(), l.getColor().getGreen(), l.getColor().getBlue()))
+    def _sendColor(self):
+        for l in self._light:
+            self._tn.write(self._SETLIGHTRGB.format(l.getName(), l.getColor().getRed(), l.getColor().getGreen(), l.getColor().getBlue()))
             
         self.sync()
         
     def setColor(self, red, green, blue):
-        for l in self.light:
+        for l in self._light:
             l.getColor().setColor(red, green, blue)
             
-        self.sendColor()
+        self._sendColor()
         
     def disconnect(self):
-        self.tn.close()
+        self._tn.close()
         
-    def sendSpeed(self):
-        for l in self.light:
-            self.tn.write(self.SETLIGHTSPEED.format(l.getName(), l.getSpeed()))
+    def _sendSpeed(self):
+        for l in self._light:
+            self._tn.write(self._SETLIGHTSPEED.format(l.getName(), l.getSpeed()))
         
     def setSpeed(self, speed):
-        for l in self.light:
+        for l in self._light:
             l.setSpeed(speed)
         
-        self.sendSpeed()
+        self._sendSpeed()
         
     def setInterpolation(self, interpolation):
-        for l in self.light:
+        for l in self._light:
             l.setInterpolation(interpolation)
         
-        self.sendInterpolation()
+        self._sendInterpolation()
         
-    def sendInterpolation(self):
-        for l in self.light:
-            self.tn.write(self.SETLIGHTINTERPOLATION.format(l.getName(), l.getInterpolation()))
+    def _sendInterpolation(self):
+        for l in self._light:
+            self._tn.write(self._SETLIGHTINTERPOLATION.format(l.getName(), l.getInterpolation()))
         
     def sync(self):
-        self.tn.write(self.SYNC)
+        self._tn.write(self._SYNC)
         
     def getLightsCount(self):
-        return self.light.__sizeof__()
+        return self._light.__sizeof__()
     
     def getLight(self):
-        return self.light
+        return self._light
     
     def ping(self):
-        self.tn.write(self.PING)
-        p = self.tn.read_until("\n")
+        self._tn.write(self._PING)
+        p = self._tn.read_until("\n")
         
         if p == "ping 1":
             return True
