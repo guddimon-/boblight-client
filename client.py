@@ -8,8 +8,6 @@ import ConfigParser
 
 import boblib
 
-GPIO.setmode(GPIO.BOARD)
-
 class LircThread(threading.Thread):
     def run(self):
         self.run = True
@@ -159,13 +157,18 @@ def bob_client_init():
     bob.setSpeed(0)
 
 
+GPIO.setmode(GPIO.BOARD)
+
 config = ConfigParser.ConfigParser()
-config.read('switch.cfg')
+config.read('boblight.cfg')
 
 switch_led = config.getint('switch', 'switch_led')
 led = config.getint('switch', 'led')
 relais_led = config.getint('switch', 'relais_led')
 switch_power = config.getint('switch', 'switch_power')
+
+bob_host    = config.get('boblight', 'host')
+bob_host    = config.getint('boblight', 'port')
 
 # # Pin P1/26 auf Raspi (GPIO 7): Schalter an/aus
 # switch_led = 7
@@ -176,6 +179,7 @@ GPIO.add_event_detect(switch_led, GPIO.RISING, callback=switch_led_pushed, bounc
 # led = 8
 GPIO.setup(led, GPIO.OUT)
 led_blink = GPIO.PWM(led, 100)
+led_blink.start(0)
 
 # # Pin P1/12 auf Raspi (GPIO 18): Schaltrelais fuer LED-Kette
 # relais_led = 18
@@ -186,24 +190,24 @@ GPIO.setup(relais_led, GPIO.OUT, initial=0)
 GPIO.setup(switch_power, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
 GPIO.add_event_detect(switch_power, GPIO.RISING, callback=switch_power_pushed, bouncetime=500)
 
-led_blink.start(0)
-
 lirc_event_loop = LircThread()
 lirc_event_loop.start()
 
 
-bob = boblib.Boblight("127.0.0.1", 19333)
+bob = boblib.Boblight(bob_host, bob_port)
+"""
 print bob
+"""
 
 bob_client_init()
 
 try:
     while 1:
         if not GPIO.input(relais_led):
-            led_blink.ChangeFrequency(50)
+            led_blink.ChangeFrequency(200)
             for dc in range (90, 9, -5):
                 led_blink.ChangeDutyCycle(dc)
-                time.sleep(0.1)
+                time.sleep(0.3)
             time.sleep(5)
             led_blink.ChangeFrequency(200)
             for dc in range (10, 91, 5):
@@ -218,6 +222,7 @@ except:
     pass
 
 
+#Cleanup everything we used
 bob.disconnect()
 
 lirc_event_loop.stop()
