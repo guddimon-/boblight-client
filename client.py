@@ -168,25 +168,17 @@ relais_led_stripe   = config.getint('switch', 'relais_led_stripe')
 switch_power        = config.getint('switch', 'switch_power')
 
 bob_host    = config.get('boblight', 'host')
-bob_host    = config.getint('boblight', 'port')
+bob_port    = config.getint('boblight', 'port')
 
-# # Pin P1/26 auf Raspi (GPIO 7): Schalter an/aus
-# switch_led_stripe = 7
 GPIO.setup(switch_led_stripe, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
 GPIO.add_event_detect(switch_led_stripe, GPIO.RISING, callback=switch_led_pushed, bouncetime=500)
 
-# # Pin P1/24 auf Raspi (GPIO 8): LED vom Schalter
-# switch_led = 8
 GPIO.setup(switch_led, GPIO.OUT)
 led_blink = GPIO.PWM(switch_led, 100)
 led_blink.start(0)
 
-# # Pin P1/12 auf Raspi (GPIO 18): Schaltrelais fuer LED-Kette
-# relais_led_stripe = 18
 GPIO.setup(relais_led_stripe, GPIO.OUT, initial=0)
 
-# # Pin P1/22 auf Raspi (GPIO 25): Dienst neustarten / Softwarereboot (2sec) / Herunterfahren (5sec)
-# switch_power = 25
 GPIO.setup(switch_power, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
 GPIO.add_event_detect(switch_power, GPIO.RISING, callback=switch_power_pushed, bouncetime=500)
 
