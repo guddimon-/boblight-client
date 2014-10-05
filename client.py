@@ -105,6 +105,10 @@ def handler(signum = None, frame = None):
     GPIO.remove_event_detect(switch_power)
     GPIO.cleanup()
 
+    while threading.active_count() > 1:
+        print "Wait until all threads are stopped..."
+        time.sleep(1)
+
     print "Exit successful."
     
     sys.exit()
