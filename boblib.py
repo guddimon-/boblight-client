@@ -111,7 +111,7 @@ class Boblight:
         else:
             raise Boblight.ConnectionError("At least <host> must be given!")
         
-    def connect(self, host, port):
+    def connect(self, host, port=19333):
         if self._tn:
             raise Boblight.ConnectionError("Already Connected!")
         else:
