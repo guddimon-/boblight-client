@@ -104,7 +104,7 @@ class Boblight:
     _light      = []
     _priority   = int(254)
     
-    def __init__(self, host="", port=19333, priority=254):
+    def __init__(self, host="", port=19333, priority=255):
         if host != "":
             self.connect(host, port)
             self.setPriority(priority)
