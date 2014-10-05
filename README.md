@@ -23,12 +23,3 @@ How to use
 2. You need to get your IR remote running using lirc. See my configuration "lirc.conf" in ./config to get some inspiration.
 3. It is necessary that lirc passes commands to this python script. Therefore it is necessary to have a mapping file named "lircrc" which you can find in ./config as well.
 4. Add buttons to your Raspberry Pi if you want to use the complete code
-
-
-To be done
-----------
-
-- add configuration for using buttons
-- find a bug where color is sent to boblightd, but color does not change at all
-- add ability to reconnect with boblightd in case the connection was lost
-- add some code to make boblib.py more robust
