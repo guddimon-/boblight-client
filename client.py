@@ -7,9 +7,11 @@ import lirc
 import threading
 import RPi.GPIO as GPIO
 import ConfigParser
+from Queue import Queue, Empty
 
 import boblib
 
+from lcdproc.server import Server
 
 # initializie our global attributes
 led_blink_loop      = None
@@ -29,6 +31,7 @@ def __main__():
     global switch_power
     global bob
     global relais_led_stripe
+    global lcd
 
     # read configuration file
     config = ConfigParser.ConfigParser()
@@ -55,6 +58,10 @@ def __main__():
     GPIO.setup(switch_power, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
     GPIO.add_event_detect(switch_power, GPIO.RISING, callback=switch_power_pushed, bouncetime=500)
     
+    # Queues for sharing data between threads
+    global q_lcd
+    q_lcd = Queue()
+        
     # start blinking 
     led_blink = GPIO.PWM(switch_led, 100)
     led_blink.start(0)
@@ -66,10 +73,14 @@ def __main__():
     lirc_event_loop = LircThread("boblight")
     lirc_event_loop.start()
     
+    # start thread for LCD
+    lcd = ThreadLCD()
+    lcd.start()
+    
     # initialize boblight
     bob = boblib.Boblight(bob_host, bob_port)
     bob_client_init()
-    
+
     for sig in [signal.SIGTERM, signal.SIGINT, signal.SIGHUP, signal.SIGQUIT]:
         signal.signal(sig, handler)
     
@@ -84,16 +95,11 @@ def __main__():
 
 
 def handler(signum = None, frame = None):
-    global led_blink_loop
-    global led_blink
-    global lirc_event_loop
-    global switch_led_stripe
-    global switch_power
-    global bob
-
     print "Exit in progress..."
 
     # cleanup everything we used
+    lcd.stop()
+    
     bob.disconnect()
     
     led_blink_loop.stop()
@@ -114,8 +120,6 @@ def handler(signum = None, frame = None):
     sys.exit()
 
 class BlinkThread(threading.Thread):
-    global led_blink
-    global relais_led_stripe
     
     
     def run(self):
@@ -145,12 +149,6 @@ class BlinkThread(threading.Thread):
 
 
 class LircThread(threading.Thread):
-    global led_blink_loop
-    global led_blink
-    global lirc_event_loop
-    global switch_led_stripe
-    global switch_power
-    global bob
 
 
     def __init__(self, name_ir):
@@ -165,6 +163,8 @@ class LircThread(threading.Thread):
             event = lirc.nextcode()
             if event != []:
                 for e in event:
+                    q_lcd.put(e)
+                    q_lcd.join()
                     if e == "KEY_POWER":
                         switch_led_pushed()
 
@@ -289,6 +289,46 @@ class LircThread(threading.Thread):
     def stop(self):
         print "Stopping LircThread..."
         self.run = False
+
+
+class ThreadLCD(threading.Thread):
+    def __init__(self):
+        super(ThreadLCD, self).__init__()
+        pass
+    
+    def run(self):
+        lcd = Server("192.168.2.100", debug=False)
+        lcd.start_session()
+        
+        screen1 = None
+        
+        self.run = True
+        while self.run:
+            try:
+                key = q_lcd.get_nowait()
+                q_lcd.task_done()
+                if screen1 != None:
+                    lcd.del_screen("Screen1")
+                screen1 = lcd.add_screen("Screen1")
+                screen1.set_heartbeat("off")
+                key_IR = screen1.add_string_widget("key_IR", text=str(key), x=1, y=2)
+
+                screen1.set_duration(11)
+                screen1.set_timeout(10)
+            except Empty:
+                pass
+
+            time.sleep(1)
+            
+        print "ThreadLCD stopped."
+            
+    def stop(self):
+        print "Stopping ThreadLCD..."
+        self.run = False
+        try:
+            q_lcd.task_done()
+        except ValueError:
+            pass
 
 
 def switch_led_pushed(switch_led_stripe=None):
