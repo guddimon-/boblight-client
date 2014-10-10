@@ -69,6 +69,10 @@ def __main__():
     led_blink_loop = BlinkThread()
     led_blink_loop.start()
     
+    # initialize boblight
+    bob = boblib.Boblight(bob_host, bob_port)
+    bob_client_init()
+
     # start thread for IR events
     lirc_event_loop = LircThread("boblight")
     lirc_event_loop.start()
@@ -77,10 +81,6 @@ def __main__():
     lcd = ThreadLCD()
     lcd.start()
     
-    # initialize boblight
-    bob = boblib.Boblight(bob_host, bob_port)
-    bob_client_init()
-
     for sig in [signal.SIGTERM, signal.SIGINT, signal.SIGHUP, signal.SIGQUIT]:
         signal.signal(sig, handler)
     
@@ -149,11 +149,18 @@ class BlinkThread(threading.Thread):
 
 
 class LircThread(threading.Thread):
-
+    list_LCD = dict()
 
     def __init__(self, name_ir):
         super(LircThread, self).__init__()
         self.sockid = lirc.init(name_ir, blocking=False, verbose=True)
+        
+        self.list_LCD.update({
+                              "bob_server_host":    bob.getHost(),
+                              "bob_server_port":    bob.getPort(),
+                              "bob_count_lights":   bob.getLightsCount(),
+                              "bob_priority":       bob.getPriority()
+                              })
 
 
     def run(self):
@@ -163,10 +170,12 @@ class LircThread(threading.Thread):
             event = lirc.nextcode()
             if event != []:
                 for e in event:
-                    q_lcd.put(e)
-                    q_lcd.join()
                     if e == "KEY_POWER":
                         switch_led_pushed()
+                        self.list_LCD.update({
+                                              "key": "Power On/Off"
+                        })
+                        self.sendToLCD()
 
                     elif e == "KEY_NUMERIC_0":
                         pass
@@ -174,26 +183,56 @@ class LircThread(threading.Thread):
                     elif e == "KEY_NUMERIC_1":
                         bob.setColor(1, 0, 0)
                         bob.setPriority(200)
+                        self.list_LCD.update({
+                                              "key": "Alles ROT",
+                                              "bob_priority": 200
+                        })
+                        self.sendToLCD()
 
                     elif e == "KEY_NUMERIC_2":
                         bob.setColor(0, 1, 0)
                         bob.setPriority(200)
+                        self.list_LCD.update({
+                                              "key": "Alles GRUEN",
+                                              "bob_priority": 200
+                        })
+                        self.sendToLCD()
 
                     elif e == "KEY_NUMERIC_3":
                         bob.setColor(0, 0, 1)
                         bob.setPriority(200)
+                        self.list_LCD.update({
+                                              "key": "Alles BLAU",
+                                              "bob_priority": 200
+                        })
+                        self.sendToLCD()
 
                     elif e == "KEY_NUMERIC_4":
                         bob.setColor(1, 1, 0)
                         bob.setPriority(200)
+                        self.list_LCD.update({
+                                              "key": "Alles GELB",
+                                              "bob_priority": 200
+                        })
+                        self.sendToLCD()
 
                     elif e == "KEY_NUMERIC_5":
                         bob.setColor(1, 0, 1)
                         bob.setPriority(200)
+                        self.list_LCD.update({
+                                              "key": "Alles VIOLETT",
+                                              "bob_priority": 200
+                        })
+                        self.sendToLCD()
 
                     elif e == "KEY_NUMERIC_6":
                         bob.setColor(0, 1, 1)
                         bob.setPriority(200)
+                        self.list_LCD.update({
+                                              "key": "Alles CYAN",
+                                              "bob_priority": 200
+                        })
+                        self.sendToLCD()
 
                     elif e == "KEY_NUMERIC_7":
                         pass
@@ -289,6 +328,10 @@ class LircThread(threading.Thread):
     def stop(self):
         print "Stopping LircThread..."
         self.run = False
+        
+    def sendToLCD(self):
+        q_lcd.put(self.list_LCD)
+        q_lcd.join()
 
 
 class ThreadLCD(threading.Thread):
@@ -300,21 +343,33 @@ class ThreadLCD(threading.Thread):
         lcd = Server("192.168.2.100", debug=False)
         lcd.start_session()
         
-        screen1 = None
+        info = None
         
         self.run = True
         while self.run:
             try:
-                key = q_lcd.get_nowait()
+                data = q_lcd.get_nowait()
                 q_lcd.task_done()
-                if screen1 != None:
-                    lcd.del_screen("Screen1")
-                screen1 = lcd.add_screen("Screen1")
-                screen1.set_heartbeat("off")
-                key_IR = screen1.add_string_widget("key_IR", text=str(key), x=1, y=2)
+                
+                key = str(data.get("key"))
+                bob_server_host = str(data.get("bob_server_host"))
+                bob_server_port = str(data.get("bob_server_port"))
+                bob_count_lights = str(data.get("bob_count_lights"))
+                bob_priority = str(data.get("bob_priority"))
+                
+                if info != None:
+                    lcd.del_screen("Info")
 
-                screen1.set_duration(11)
-                screen1.set_timeout(10)
+                info = lcd.add_screen("Info")
+                info.set_heartbeat("off")
+                info.add_string_widget("boblight", text="Boblight:")
+                info.add_string_widget("bob_server", text=bob_server_host+":"+bob_server_port, x=1, y=2)
+                info.add_string_widget("bob_count_lights", text=bob_count_lights, x=1, y=3)
+                info.add_string_widget("bob_priority", text=bob_priority, x=1, y=4)
+                info.add_string_widget("key_IR", text=key, x=21, y=2)
+
+                info.set_duration(11)
+                info.set_timeout(10)
             except Empty:
                 pass
 
